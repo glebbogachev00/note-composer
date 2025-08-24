@@ -132,18 +132,18 @@ export const ConnectionLine: React.FC<ConnectionLineProps> = ({
       <AnimatePresence>
         {showDisconnectButton && onDisconnect && (
           <motion.g
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
             <circle
               cx={midX}
               cy={midY}
-              r="12"
-              fill="#EF4444"
-              stroke="white"
-              strokeWidth="2"
+              r="8"
+              fill={isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}
+              stroke={isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)'}
+              strokeWidth="1"
               style={{ cursor: 'pointer' }}
               onClick={handleDisconnect}
             />
@@ -152,8 +152,9 @@ export const ConnectionLine: React.FC<ConnectionLineProps> = ({
               y={midY}
               textAnchor="middle"
               dy="0.3em"
-              fill="white"
-              fontSize="12"
+              fill={isDarkMode ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)'}
+              fontSize="8"
+              fontFamily="monospace"
               style={{ pointerEvents: 'none', userSelect: 'none' }}
             >
               ×

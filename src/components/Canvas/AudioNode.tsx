@@ -97,13 +97,6 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
     setShowControls(false);
   }, []);
 
-  const handleVolumeChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const volume = parseFloat(event.target.value);
-    if (onVolumeChange) {
-      onVolumeChange(node.id, volume);
-    }
-  }, [onVolumeChange, node.id]);
-
   const handleMuteToggle = useCallback((event: React.MouseEvent) => {
     event.stopPropagation();
     if (onMuteToggle) {
@@ -273,66 +266,52 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
       <AnimatePresence>
         {isDeletionMode && (
           <motion.button
-            className="absolute -top-2 -right-2"
+            className={`
+              absolute -top-3 -right-3 text-xs font-mono transition-colors
+              ${isMarkedForDeletion 
+                ? (isDarkMode ? 'text-white/80' : 'text-black/80')
+                : (isDarkMode ? 'text-white/40' : 'text-black/40')
+              }
+            `}
             onClick={(e) => {
               e.stopPropagation();
               if (onToggleDeleteSelection) {
                 onToggleDeleteSelection(node.id);
               }
             }}
-            style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '50%',
-              backgroundColor: isMarkedForDeletion ? '#EF4444' : '#374151',
-              border: '2px solid white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '12px',
-              cursor: 'pointer',
-              zIndex: 20
-            }}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            whileHover={{ scale: 1.1 }}
+            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            {isMarkedForDeletion ? '✓' : '×'}
+            [{isMarkedForDeletion ? '✓' : '×'}]
           </motion.button>
         )}
       </AnimatePresence>
 
       {/* Pause control button */}
       <AnimatePresence>
-        {showControls && (node.isPlaying || isPaused) && onPause && (
+        {showControls && (node.isPlaying || isPaused) && onPause && !isDeletionMode && (
           <motion.button
-            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+            className={`
+              absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2
+              text-xs font-mono transition-colors
+              ${isDarkMode 
+                ? 'text-white/40 hover:text-white/80' 
+                : 'text-black/40 hover:text-black/80'
+              }
+            `}
             onClick={node.isPlaying ? handlePause : (isPaused && onResume ? () => onResume(node.id) : undefined)}
-            style={{
-              backgroundColor: 'rgba(0,0,0,0.7)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '50%',
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '12px',
-              cursor: 'pointer',
-              zIndex: 10
-            }}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            whileHover={{ scale: 1.1 }}
+            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            {node.isPlaying ? '⏸️' : (isPaused ? '▶️' : '⏸️')}
+            [{node.isPlaying ? 'pause' : (isPaused ? 'play' : 'pause')}]
           </motion.button>
         )}
       </AnimatePresence>
@@ -359,59 +338,24 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
       <AnimatePresence>
         {showControls && !isDeletionMode && onVolumeChange && (
           <motion.div
-            className="absolute -bottom-14 left-1/2 transform -translate-x-1/2"
-            initial={{ opacity: 0, y: -10 }}
+            className="absolute -bottom-10 left-1/2 transform -translate-x-1/2"
+            initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
+            exit={{ opacity: 0, y: -5 }}
             transition={{ duration: 0.2 }}
           >
             <div className={`
-              backdrop-blur-sm rounded-lg px-3 py-2 border flex items-center space-x-2
-              ${isDarkMode 
-                ? 'bg-pure-black/95 border-white/20' 
-                : 'bg-white/95 border-black/20'
-              }
+              flex items-center space-x-2 text-xs font-mono
+              ${isDarkMode ? 'text-white/60' : 'text-black/60'}
             `}>
               <button
-                className={`text-sm ${
-                  isDarkMode 
-                    ? (isMuted ? 'text-red-400' : 'text-white/80 hover:text-white') 
-                    : (isMuted ? 'text-red-600' : 'text-black/80 hover:text-black')
-                } transition-colors`}
+                className={`transition-colors hover:${
+                  isDarkMode ? 'text-white/80' : 'text-black/80'
+                }`}
                 onClick={handleMuteToggle}
               >
-                {isMuted ? '🔇' : '🔊'}
+                [{isMuted ? 'muted' : Math.round(nodeVolume * 100)}]
               </button>
-              
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.1"
-                value={isMuted ? 0 : nodeVolume}
-                onChange={handleVolumeChange}
-                className={`w-16 h-1 rounded-lg appearance-none cursor-pointer
-                  ${isDarkMode 
-                    ? 'bg-white/20 slider-thumb-white' 
-                    : 'bg-black/20 slider-thumb-black'
-                  }
-                `}
-                style={{
-                  background: isMuted 
-                    ? (isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)')
-                    : `linear-gradient(to right, 
-                        ${isDarkMode ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)'} 0%, 
-                        ${isDarkMode ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)'} ${nodeVolume * 100}%, 
-                        ${isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'} ${nodeVolume * 100}%, 
-                        ${isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'} 100%)`
-                }}
-              />
-              
-              <span className={`text-xs font-mono ${
-                isDarkMode ? 'text-white/60' : 'text-black/60'
-              }`}>
-                {Math.round((isMuted ? 0 : nodeVolume) * 100)}
-              </span>
             </div>
           </motion.div>
         )}

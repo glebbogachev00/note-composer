@@ -459,20 +459,20 @@ function App() {
         {!isVideoMode && (
           <motion.button
             className={`
-              fixed bottom-8 right-8 z-40 px-4 py-2 rounded-lg border font-mono text-sm transition-all
+              fixed bottom-8 right-8 z-40 text-xs font-mono transition-colors
               ${isDarkMode 
-                ? 'bg-purple-500/20 border-purple-500/40 text-purple-400 hover:bg-purple-500/30' 
-                : 'bg-purple-100 border-purple-300 text-purple-600 hover:bg-purple-200'
+                ? 'text-white/40 hover:text-white/80' 
+                : 'text-black/40 hover:text-black/80'
               }
             `}
             onClick={handleVideoModeToggle}
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            📹 Video Mode
+            [video]
           </motion.button>
         )}
       </AnimatePresence>
@@ -482,20 +482,20 @@ function App() {
         {isVideoMode && (
           <motion.button
             className={`
-              fixed top-8 left-8 z-50 px-3 py-2 rounded border font-mono text-xs transition-all
+              fixed top-8 left-8 z-50 text-xs font-mono transition-colors
               ${isDarkMode 
-                ? 'bg-black/50 border-white/20 text-white/60 hover:border-white/40 hover:text-white/80 backdrop-blur-sm' 
-                : 'bg-white/50 border-black/20 text-black/60 hover:border-black/40 hover:text-black/80 backdrop-blur-sm'
+                ? 'text-white/40 hover:text-white/80' 
+                : 'text-black/40 hover:text-black/80'
               }
             `}
             onClick={handleVideoModeToggle}
-            initial={{ opacity: 0, scale: 0.9, x: -20 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
-            exit={{ opacity: 0, scale: 0.9, x: -20 }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -10 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            Exit Video Mode
+            [exit]
           </motion.button>
         )}
       </AnimatePresence>
