@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AudioNode } from '../../types';
 
 interface ConnectionLineProps {
@@ -7,14 +7,17 @@ interface ConnectionLineProps {
   toNode: AudioNode;
   isActive: boolean;
   isDarkMode: boolean;
+  onDisconnect?: (fromNodeId: string, toNodeId: string) => void;
 }
 
 export const ConnectionLine: React.FC<ConnectionLineProps> = ({
   fromNode,
   toNode,
   isActive,
-  isDarkMode
+  isDarkMode,
+  onDisconnect
 }) => {
+  const [showDisconnectButton, setShowDisconnectButton] = useState(false);
   const dx = toNode.x - fromNode.x;
   const dy = toNode.y - fromNode.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
@@ -34,18 +37,27 @@ export const ConnectionLine: React.FC<ConnectionLineProps> = ({
   // SVG path for organic molecular bond
   const pathData = `M ${fromNode.x} ${fromNode.y} Q ${controlX} ${controlY} ${toNode.x} ${toNode.y}`;
 
+  const handleDisconnect = () => {
+    if (onDisconnect) {
+      onDisconnect(fromNode.id, toNode.id);
+    }
+  };
+
   return (
     <motion.svg
-      className="absolute inset-0 pointer-events-none"
+      className="absolute inset-0"
       style={{
         left: 0,
         top: 0,
         width: '100%',
-        height: '100%'
+        height: '100%',
+        pointerEvents: onDisconnect ? 'auto' : 'none'
       }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
+      onMouseEnter={() => setShowDisconnectButton(true)}
+      onMouseLeave={() => setShowDisconnectButton(false)}
     >
       {/* Main molecular bond line */}
       <motion.path
@@ -115,6 +127,40 @@ export const ConnectionLine: React.FC<ConnectionLineProps> = ({
           </motion.circle>
         </>
       )}
+
+      {/* Disconnect button */}
+      <AnimatePresence>
+        {showDisconnectButton && onDisconnect && (
+          <motion.g
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <circle
+              cx={midX}
+              cy={midY}
+              r="12"
+              fill="#EF4444"
+              stroke="white"
+              strokeWidth="2"
+              style={{ cursor: 'pointer' }}
+              onClick={handleDisconnect}
+            />
+            <text
+              x={midX}
+              y={midY}
+              textAnchor="middle"
+              dy="0.3em"
+              fill="white"
+              fontSize="12"
+              style={{ pointerEvents: 'none', userSelect: 'none' }}
+            >
+              ×
+            </text>
+          </motion.g>
+        )}
+      </AnimatePresence>
     </motion.svg>
   );
 };

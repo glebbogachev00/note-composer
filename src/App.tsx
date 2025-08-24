@@ -280,6 +280,29 @@ function App() {
     }));
   }, []);
 
+  const handleDisconnectNodes = useCallback((fromNodeId: string, toNodeId: string) => {
+    nodeManagerRef.current.disconnectNodes(fromNodeId, toNodeId);
+    
+    setCanvasState(prev => ({
+      ...prev,
+      nodes: prev.nodes.map(node => {
+        if (node.id === fromNodeId) {
+          return {
+            ...node,
+            connections: node.connections.filter(id => id !== toNodeId)
+          };
+        }
+        if (node.id === toNodeId) {
+          return {
+            ...node,
+            connections: node.connections.filter(id => id !== fromNodeId)
+          };
+        }
+        return node;
+      })
+    }));
+  }, []);
+
   const connections = nodeManagerRef.current.getConnections();
 
   return (
@@ -328,6 +351,7 @@ function App() {
             toNode={to}
             isActive={from.isPlaying || to.isPlaying}
             isDarkMode={isDarkMode}
+            onDisconnect={handleDisconnectNodes}
           />
         ))}
 
