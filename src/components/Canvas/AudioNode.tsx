@@ -11,7 +11,10 @@ interface AudioNodeProps {
   onMove: (nodeId: string, x: number, y: number) => void;
   onDelete: (nodeId: string) => void;
   onConnectionStart: (nodeId: string) => void;
+  onToggleDeleteSelection?: (nodeId: string) => void;
   isConnecting: boolean;
+  isDeletionMode?: boolean;
+  isMarkedForDeletion?: boolean;
   scale: number;
   isDarkMode: boolean;
   isConnected?: boolean;
@@ -27,7 +30,10 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
   onMove,
   onDelete,
   onConnectionStart,
+  onToggleDeleteSelection,
   isConnecting,
+  isDeletionMode = false,
+  isMarkedForDeletion = false,
   scale,
   isDarkMode,
   isConnected = false,
@@ -48,7 +54,9 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
     event.stopPropagation();
     
     if (!isDragging) {
-      if (isConnecting) {
+      if (isDeletionMode && onToggleDeleteSelection) {
+        onToggleDeleteSelection(node.id);
+      } else if (isConnecting) {
         onConnectionStart(node.id);
       } else if (node.isPlaying) {
         onStop(node.id);
@@ -63,7 +71,7 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
     setIsDragging(false);
     
     setTimeout(() => setShowLabel(false), 2000);
-  }, [isDragging, isConnecting, node.isPlaying, isPaused, node.id, onConnectionStart, onStop, onPlay, onResume]);
+  }, [isDragging, isDeletionMode, isConnecting, node.isPlaying, isPaused, node.id, onToggleDeleteSelection, onConnectionStart, onStop, onPlay, onResume]);
 
   const handlePause = useCallback((event: React.MouseEvent) => {
     event.stopPropagation();
@@ -91,9 +99,25 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
   const nodeSize = 100;
   const glowSize = node.isPlaying ? nodeSize * 1.4 : nodeSize * 1.1;
   
-  // Visual state based on connection status and pause state
+  // Visual state based on connection status, pause state, and deletion mode
   const getNodeVisualState = () => {
-    if (isPaused) {
+    if (isMarkedForDeletion) {
+      return {
+        borderColor: isDarkMode ? '#EF4444' : '#DC2626', // Red for marked for deletion
+        glowColor: 'rgba(239, 68, 68, 0.5)',
+        opacity: 0.5,
+        scale: 0.9,
+        glowIntensity: 0.6
+      };
+    } else if (isDeletionMode) {
+      return {
+        borderColor: isDarkMode ? '#6B7280' : '#9CA3AF', // Gray in deletion mode
+        glowColor: 'rgba(107, 114, 128, 0.2)',
+        opacity: 0.7,
+        scale: 0.95,
+        glowIntensity: 0.2
+      };
+    } else if (isPaused) {
       return {
         borderColor: isDarkMode ? '#F59E0B' : '#D97706', // Amber for paused
         glowColor: 'rgba(245, 158, 11, 0.4)',
@@ -221,6 +245,42 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
           />
         </div>
       </motion.div>
+
+      {/* Delete indicator */}
+      <AnimatePresence>
+        {isDeletionMode && (
+          <motion.button
+            className="absolute -top-2 -right-2"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onToggleDeleteSelection) {
+                onToggleDeleteSelection(node.id);
+              }
+            }}
+            style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: '50%',
+              backgroundColor: isMarkedForDeletion ? '#EF4444' : '#374151',
+              border: '2px solid white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              cursor: 'pointer',
+              zIndex: 20
+            }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.2 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {isMarkedForDeletion ? '✓' : '×'}
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* Pause control button */}
       <AnimatePresence>

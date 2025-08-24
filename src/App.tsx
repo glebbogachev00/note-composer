@@ -10,7 +10,7 @@ import { AudioUploader } from './components/Upload/AudioUploader';
 import { SessionRecorder } from './components/Recording/SessionRecorder';
 import { ExportManager } from './components/Recording/ExportManager';
 import { ThemeChanger } from './components/ThemeChanger';
-import { CanvasState, InteractionMode } from './types';
+import { CanvasState, InteractionMode, DeletionState } from './types';
 import { validateAudioFile } from './utils/fileHandling';
 
 function App() {
@@ -33,6 +33,10 @@ function App() {
   const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null);
   const [isExportVisible, setIsExportVisible] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [deletionState, setDeletionState] = useState<DeletionState>({
+    mode: 'normal',
+    selectedForDeletion: new Set()
+  });
 
   useEffect(() => {
     const initializeAudio = async () => {
@@ -45,6 +49,14 @@ function App() {
 
     initializeAudio();
   }, []);
+
+  useEffect(() => {
+    setDeletionState(prev => ({
+      ...prev,
+      mode: mode === 'delete' ? 'delete' : 'normal',
+      selectedForDeletion: mode !== 'delete' ? new Set() : prev.selectedForDeletion
+    }));
+  }, [mode]);
 
   const handleCanvasUpdate = useCallback((updates: Partial<CanvasState>) => {
     setCanvasState(prev => ({ ...prev, ...updates }));
@@ -227,6 +239,47 @@ function App() {
     }
   }, []);
 
+  const handleToggleDeleteSelection = useCallback((nodeId: string) => {
+    setDeletionState(prev => {
+      const newSet = new Set(prev.selectedForDeletion);
+      if (newSet.has(nodeId)) {
+        newSet.delete(nodeId);
+      } else {
+        newSet.add(nodeId);
+      }
+      return { ...prev, selectedForDeletion: newSet };
+    });
+  }, []);
+
+  const handleDeleteSelected = useCallback(() => {
+    const nodeIdsToDelete = Array.from(deletionState.selectedForDeletion);
+    
+    // Delete each selected node
+    nodeIdsToDelete.forEach(nodeId => {
+      nodeManagerRef.current.removeNode(nodeId);
+    });
+
+    // Update canvas state
+    setCanvasState(prev => ({
+      ...prev,
+      nodes: prev.nodes.filter(node => !deletionState.selectedForDeletion.has(node.id))
+    }));
+
+    // Clear selection and exit delete mode
+    setDeletionState({
+      mode: 'normal',
+      selectedForDeletion: new Set()
+    });
+    setMode('play');
+  }, [deletionState.selectedForDeletion]);
+
+  const handleClearSelection = useCallback(() => {
+    setDeletionState(prev => ({
+      ...prev,
+      selectedForDeletion: new Set()
+    }));
+  }, []);
+
   const connections = nodeManagerRef.current.getConnections();
 
   return (
@@ -290,7 +343,10 @@ function App() {
             onMove={handleNodeMove}
             onDelete={handleNodeDelete}
             onConnectionStart={handleConnectionStart}
+            onToggleDeleteSelection={handleToggleDeleteSelection}
             isConnecting={mode === 'connect'}
+            isDeletionMode={mode === 'delete'}
+            isMarkedForDeletion={deletionState.selectedForDeletion.has(node.id)}
             scale={canvasState.zoom}
             isDarkMode={isDarkMode}
             isConnected={node.connections.length > 0}
@@ -312,6 +368,9 @@ function App() {
         onModeChange={setMode}
         onAddNode={handleAddNode}
         onZoomFit={handleZoomFit}
+        onDeleteSelected={handleDeleteSelected}
+        onClearSelection={handleClearSelection}
+        selectedForDeletionCount={deletionState.selectedForDeletion.size}
         isDarkMode={isDarkMode}
       />
 

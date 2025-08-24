@@ -35,7 +35,12 @@ export interface AudioUpload {
   buffer: AudioBuffer;
 }
 
-export type InteractionMode = 'play' | 'edit' | 'connect';
+export type InteractionMode = 'play' | 'edit' | 'connect' | 'delete';
+
+export interface DeletionState {
+  mode: 'normal' | 'delete';
+  selectedForDeletion: Set<string>;
+}
 
 export interface GestureState {
   isPressed: boolean;
