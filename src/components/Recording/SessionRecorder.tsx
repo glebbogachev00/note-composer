@@ -11,11 +11,13 @@ interface RecordingEvent {
 interface SessionRecorderProps {
   isRecording: boolean;
   onRecordingComplete: (audioBlob: Blob, events: RecordingEvent[]) => void;
+  audioEngine?: any; // AudioEngine instance for capturing internal audio
 }
 
 export const SessionRecorder: React.FC<SessionRecorderProps> = ({
   isRecording,
-  onRecordingComplete
+  onRecordingComplete,
+  audioEngine
 }) => {
   const [recordingDuration, setRecordingDuration] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -26,16 +28,43 @@ export const SessionRecorder: React.FC<SessionRecorderProps> = ({
 
   const startRecording = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 44100
-        } 
-      });
+      if (!audioEngine) {
+        throw new Error('Audio engine not available for recording');
+      }
+
+      const audioContext = audioEngine.getContext();
+      if (!audioContext) {
+        throw new Error('Audio context not available');
+      }
+
+      // Create a media stream destination to capture audio from the audio context
+      const dest = audioContext.createMediaStreamDestination();
+      
+      // Get the master gain node and connect it to our recording destination
+      const masterGain = audioEngine.getMasterGain();
+      if (masterGain) {
+        masterGain.connect(dest);
+      } else {
+        // Fallback: if no master gain, recording will be silent but won't crash
+        console.warn('No master gain available for recording');
+      }
+
+      const stream = dest.stream;
+
+      // Check if the browser supports the desired format
+      let mimeType = 'audio/webm;codecs=opus';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'audio/webm';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'audio/mp4';
+          if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = ''; // Let browser choose
+          }
+        }
+      }
 
       mediaRecorderRef.current = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
+        mimeType: mimeType || undefined
       });
 
       audioChunksRef.current = [];
@@ -50,10 +79,12 @@ export const SessionRecorder: React.FC<SessionRecorderProps> = ({
       };
 
       mediaRecorderRef.current.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunksRef.current, { 
+          type: mediaRecorderRef.current?.mimeType || 'audio/webm'
+        });
         onRecordingComplete(audioBlob, eventsRef.current);
         
-        // Stop all tracks to release microphone
+        // Stop all tracks
         stream.getTracks().forEach(track => track.stop());
       };
 
@@ -66,9 +97,9 @@ export const SessionRecorder: React.FC<SessionRecorderProps> = ({
 
     } catch (error) {
       console.error('Failed to start recording:', error);
-      alert('Microphone access required for recording. Please allow microphone access and try again.');
+      alert(`Recording failed to start: ${error.message}. Please try again.`);
     }
-  }, [onRecordingComplete]);
+  }, [onRecordingComplete, audioEngine]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {

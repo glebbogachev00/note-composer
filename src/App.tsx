@@ -219,9 +219,12 @@ function App() {
     }));
   }, [canvasState.nodes]);
 
-  const handleRecordingComplete = useCallback((audioBlob: Blob) => {
+  const handleRecordingComplete = useCallback((audioBlob: Blob, events?: any[]) => {
     setRecordingBlob(audioBlob);
     setIsExportVisible(true);
+    if (events) {
+      console.log('Recording events:', events); // For future use with playback
+    }
   }, []);
 
   const connections = nodeManagerRef.current.getConnections();
@@ -324,6 +327,7 @@ function App() {
       <SessionRecorder
         isRecording={isRecording}
         onRecordingComplete={handleRecordingComplete}
+        audioEngine={audioEngineRef.current}
       />
 
       {/* Export manager */}

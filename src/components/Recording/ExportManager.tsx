@@ -16,24 +16,31 @@ export const ExportManager: React.FC<ExportManagerProps> = ({
 }) => {
   const [isExporting, setIsExporting] = useState(false);
 
-  const downloadAudio = async (format: 'webm' | 'wav') => {
+  const downloadAudio = async (preferredFormat?: 'original' | 'rename') => {
     if (!audioBlob) return;
 
     try {
       setIsExporting(true);
       
-      let finalBlob = audioBlob;
-      let extension = 'webm';
-
-      if (format === 'wav') {
-        // For now, we'll keep the original format since WAV conversion
-        // would require additional audio processing libraries
+      // Detect the actual format from the blob type
+      let extension = 'webm'; // default fallback
+      if (audioBlob.type.includes('webm')) {
+        extension = 'webm';
+      } else if (audioBlob.type.includes('mp4')) {
+        extension = 'mp4';
+      } else if (audioBlob.type.includes('wav')) {
         extension = 'wav';
       }
 
-      const url = URL.createObjectURL(finalBlob);
+      // If user prefers 'rename', change webm to wav for clarity (but keep the actual format)
+      let displayExtension = extension;
+      if (preferredFormat === 'rename' && extension === 'webm') {
+        displayExtension = 'wav';
+      }
+
+      const url = URL.createObjectURL(audioBlob);
       const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
-      const filename = `${sessionName}-${timestamp}.${extension}`;
+      const filename = `${sessionName}-${timestamp}.${displayExtension}`;
 
       const link = document.createElement('a');
       link.href = url;
@@ -115,11 +122,11 @@ export const ExportManager: React.FC<ExportManagerProps> = ({
                       w-full text-white/60 hover:text-white border border-white/20 hover:border-white/40
                       px-6 py-2 text-sm font-mono transition-all duration-300
                     "
-                    onClick={() => downloadAudio('webm')}
+                    onClick={() => downloadAudio('original')}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    [download webm]
+                    [download original]
                   </motion.button>
 
                   <motion.button
@@ -127,11 +134,11 @@ export const ExportManager: React.FC<ExportManagerProps> = ({
                       w-full text-white/40 hover:text-white/60 border border-white/10 hover:border-white/20
                       px-6 py-2 text-sm font-mono transition-all duration-300
                     "
-                    onClick={() => downloadAudio('wav')}
+                    onClick={() => downloadAudio('rename')}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    [download wav]
+                    [download as wav]
                   </motion.button>
                 </div>
               )}

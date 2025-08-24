@@ -180,6 +180,10 @@ export class AudioEngine {
     return this.audioContext;
   }
 
+  getMasterGain(): GainNode | null {
+    return this.masterGain;
+  }
+
   isNodePlaying(nodeId: string): boolean {
     return this.activeNodes.has(nodeId);
   }
