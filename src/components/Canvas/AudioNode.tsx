@@ -12,9 +12,13 @@ interface AudioNodeProps {
   onDelete: (nodeId: string) => void;
   onConnectionStart: (nodeId: string) => void;
   onToggleDeleteSelection?: (nodeId: string) => void;
+  onVolumeChange?: (nodeId: string, volume: number) => void;
+  onMuteToggle?: (nodeId: string) => void;
   isConnecting: boolean;
   isDeletionMode?: boolean;
   isMarkedForDeletion?: boolean;
+  nodeVolume?: number;
+  isMuted?: boolean;
   scale: number;
   isDarkMode: boolean;
   isConnected?: boolean;
@@ -31,9 +35,13 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
   onDelete,
   onConnectionStart,
   onToggleDeleteSelection,
+  onVolumeChange,
+  onMuteToggle,
   isConnecting,
   isDeletionMode = false,
   isMarkedForDeletion = false,
+  nodeVolume = 1,
+  isMuted = false,
   scale,
   isDarkMode,
   isConnected = false,
@@ -43,6 +51,7 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [showLabel, setShowLabel] = useState(false);
   const [showControls, setShowControls] = useState(false);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
 
   const handleTouchStart = useCallback((event: React.TouchEvent | React.MouseEvent) => {
     event.stopPropagation();
@@ -86,7 +95,22 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
 
   const handleMouseLeave = useCallback(() => {
     setShowControls(false);
+    setShowVolumeSlider(false);
   }, []);
+
+  const handleVolumeChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const volume = parseFloat(event.target.value);
+    if (onVolumeChange) {
+      onVolumeChange(node.id, volume);
+    }
+  }, [onVolumeChange, node.id]);
+
+  const handleMuteToggle = useCallback((event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (onMuteToggle) {
+      onMuteToggle(node.id);
+    }
+  }, [onMuteToggle, node.id]);
 
 
   const handleDrag = useCallback((_: any, info: any) => {
@@ -328,6 +352,68 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
             transition={{ duration: 0.3 }}
           >
             [{node.fileName.replace(/\.[^/.]+$/, '')}]
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Volume controls */}
+      <AnimatePresence>
+        {showControls && !isDeletionMode && onVolumeChange && (
+          <motion.div
+            className="absolute -bottom-14 left-1/2 transform -translate-x-1/2"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className={`
+              backdrop-blur-sm rounded-lg px-3 py-2 border flex items-center space-x-2
+              ${isDarkMode 
+                ? 'bg-pure-black/95 border-white/20' 
+                : 'bg-white/95 border-black/20'
+              }
+            `}>
+              <button
+                className={`text-sm ${
+                  isDarkMode 
+                    ? (isMuted ? 'text-red-400' : 'text-white/80 hover:text-white') 
+                    : (isMuted ? 'text-red-600' : 'text-black/80 hover:text-black')
+                } transition-colors`}
+                onClick={handleMuteToggle}
+              >
+                {isMuted ? '🔇' : '🔊'}
+              </button>
+              
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.1"
+                value={isMuted ? 0 : nodeVolume}
+                onChange={handleVolumeChange}
+                className={`w-16 h-1 rounded-lg appearance-none cursor-pointer
+                  ${isDarkMode 
+                    ? 'bg-white/20 slider-thumb-white' 
+                    : 'bg-black/20 slider-thumb-black'
+                  }
+                `}
+                style={{
+                  background: isMuted 
+                    ? (isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)')
+                    : `linear-gradient(to right, 
+                        ${isDarkMode ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)'} 0%, 
+                        ${isDarkMode ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)'} ${nodeVolume * 100}%, 
+                        ${isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'} ${nodeVolume * 100}%, 
+                        ${isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'} 100%)`
+                }}
+              />
+              
+              <span className={`text-xs font-mono ${
+                isDarkMode ? 'text-white/60' : 'text-black/60'
+              }`}>
+                {Math.round((isMuted ? 0 : nodeVolume) * 100)}
+              </span>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

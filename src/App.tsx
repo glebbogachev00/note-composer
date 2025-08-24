@@ -303,6 +303,21 @@ function App() {
     }));
   }, []);
 
+  const handleVolumeChange = useCallback((nodeId: string, volume: number) => {
+    audioEngineRef.current.setNodeVolume(nodeId, volume);
+  }, []);
+
+  const handleMuteToggle = useCallback((nodeId: string) => {
+    const nodeState = audioEngineRef.current.getNodeState(nodeId);
+    if (nodeState) {
+      if (nodeState.isMuted) {
+        audioEngineRef.current.unmuteNode(nodeId);
+      } else {
+        audioEngineRef.current.muteNode(nodeId);
+      }
+    }
+  }, []);
+
   const connections = nodeManagerRef.current.getConnections();
 
   return (
@@ -356,27 +371,34 @@ function App() {
         ))}
 
         {/* Audio nodes */}
-        {canvasState.nodes.map(node => (
-          <AudioNodeComponent
-            key={node.id}
-            node={node}
-            onPlay={handleNodePlay}
-            onStop={handleNodeStop}
-            onPause={handleNodePause}
-            onResume={handleNodeResume}
-            onMove={handleNodeMove}
-            onDelete={handleNodeDelete}
-            onConnectionStart={handleConnectionStart}
-            onToggleDeleteSelection={handleToggleDeleteSelection}
-            isConnecting={mode === 'connect'}
-            isDeletionMode={mode === 'delete'}
-            isMarkedForDeletion={deletionState.selectedForDeletion.has(node.id)}
-            scale={canvasState.zoom}
-            isDarkMode={isDarkMode}
-            isConnected={node.connections.length > 0}
-            isPaused={nodeManagerRef.current.isNodePaused(node.id)}
-          />
-        ))}
+        {canvasState.nodes.map(node => {
+          const nodeState = audioEngineRef.current.getNodeState(node.id);
+          return (
+            <AudioNodeComponent
+              key={node.id}
+              node={node}
+              onPlay={handleNodePlay}
+              onStop={handleNodeStop}
+              onPause={handleNodePause}
+              onResume={handleNodeResume}
+              onMove={handleNodeMove}
+              onDelete={handleNodeDelete}
+              onConnectionStart={handleConnectionStart}
+              onToggleDeleteSelection={handleToggleDeleteSelection}
+              onVolumeChange={handleVolumeChange}
+              onMuteToggle={handleMuteToggle}
+              isConnecting={mode === 'connect'}
+              isDeletionMode={mode === 'delete'}
+              isMarkedForDeletion={deletionState.selectedForDeletion.has(node.id)}
+              nodeVolume={nodeState?.volume ?? 1}
+              isMuted={nodeState?.isMuted ?? false}
+              scale={canvasState.zoom}
+              isDarkMode={isDarkMode}
+              isConnected={node.connections.length > 0}
+              isPaused={nodeManagerRef.current.isNodePaused(node.id)}
+            />
+          );
+        })}
 
         {/* Connection preview line */}
         {connectingNodeId && mode === 'connect' && (
