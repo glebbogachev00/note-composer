@@ -6,6 +6,8 @@ interface AudioNodeProps {
   node: AudioNodeType;
   onPlay: (nodeId: string, loop: boolean) => void;
   onStop: (nodeId: string) => void;
+  onPause?: (nodeId: string) => void;
+  onResume?: (nodeId: string) => void;
   onMove: (nodeId: string, x: number, y: number) => void;
   onDelete: (nodeId: string) => void;
   onConnectionStart: (nodeId: string) => void;
@@ -13,23 +15,28 @@ interface AudioNodeProps {
   scale: number;
   isDarkMode: boolean;
   isConnected?: boolean;
+  isPaused?: boolean;
 }
 
 export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
   node,
   onPlay,
   onStop,
+  onPause,
+  onResume,
   onMove,
   onDelete,
   onConnectionStart,
   isConnecting,
   scale,
   isDarkMode,
-  isConnected = false
+  isConnected = false,
+  isPaused = false
 }) => {
   const [isPressed, setIsPressed] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [showLabel, setShowLabel] = useState(false);
+  const [showControls, setShowControls] = useState(false);
 
   const handleTouchStart = useCallback((event: React.TouchEvent | React.MouseEvent) => {
     event.stopPropagation();
@@ -45,6 +52,8 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
         onConnectionStart(node.id);
       } else if (node.isPlaying) {
         onStop(node.id);
+      } else if (isPaused && onResume) {
+        onResume(node.id);
       } else {
         onPlay(node.id, false);
       }
@@ -54,7 +63,22 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
     setIsDragging(false);
     
     setTimeout(() => setShowLabel(false), 2000);
-  }, [isDragging, isConnecting, node.isPlaying, node.id, onConnectionStart, onStop, onPlay]);
+  }, [isDragging, isConnecting, node.isPlaying, isPaused, node.id, onConnectionStart, onStop, onPlay, onResume]);
+
+  const handlePause = useCallback((event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (onPause && node.isPlaying) {
+      onPause(node.id);
+    }
+  }, [onPause, node.isPlaying, node.id]);
+
+  const handleMouseEnter = useCallback(() => {
+    setShowControls(true);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setShowControls(false);
+  }, []);
 
 
   const handleDrag = useCallback((_: any, info: any) => {
@@ -67,9 +91,17 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
   const nodeSize = 100;
   const glowSize = node.isPlaying ? nodeSize * 1.4 : nodeSize * 1.1;
   
-  // Visual state based on connection status
+  // Visual state based on connection status and pause state
   const getNodeVisualState = () => {
-    if (isConnected) {
+    if (isPaused) {
+      return {
+        borderColor: isDarkMode ? '#F59E0B' : '#D97706', // Amber for paused
+        glowColor: 'rgba(245, 158, 11, 0.4)',
+        opacity: 0.9,
+        scale: 0.98,
+        glowIntensity: 0.3
+      };
+    } else if (isConnected) {
       return {
         borderColor: isDarkMode ? '#3B82F6' : '#2563EB', // Blue
         glowColor: 'rgba(59, 130, 246, 0.6)',
@@ -105,6 +137,8 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
       onTouchEnd={handleTouchEnd}
       onMouseDown={handleTouchStart}
       onMouseUp={handleTouchEnd}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       whileTap={{ scale: 0.95 }}
       animate={{
         scale: isPressed ? 0.95 : visualState.scale,
@@ -187,6 +221,38 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
           />
         </div>
       </motion.div>
+
+      {/* Pause control button */}
+      <AnimatePresence>
+        {showControls && (node.isPlaying || isPaused) && onPause && (
+          <motion.button
+            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+            onClick={node.isPlaying ? handlePause : (isPaused && onResume ? () => onResume(node.id) : undefined)}
+            style={{
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '50%',
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              cursor: 'pointer',
+              zIndex: 10
+            }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.2 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {node.isPlaying ? '⏸️' : (isPaused ? '▶️' : '⏸️')}
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* File name label */}
       <AnimatePresence>

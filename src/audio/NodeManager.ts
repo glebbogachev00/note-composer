@@ -63,6 +63,39 @@ export class NodeManager {
     }
   }
 
+  pauseNode(nodeId: string): void {
+    this.audioEngine.pauseNode(nodeId);
+    this.updateNodeState(nodeId, { isPlaying: false });
+
+    const node = this.nodes.get(nodeId);
+    if (node) {
+      node.connections.forEach(connectedNodeId => {
+        this.audioEngine.pauseNode(connectedNodeId);
+        this.updateNodeState(connectedNodeId, { isPlaying: false });
+      });
+    }
+  }
+
+  resumeNode(nodeId: string): void {
+    const node = this.nodes.get(nodeId);
+    if (!node || !node.audioBuffer) return;
+
+    this.audioEngine.resumeNode(nodeId, node.audioBuffer);
+    this.updateNodeState(nodeId, { isPlaying: true });
+
+    node.connections.forEach(connectedNodeId => {
+      const connectedNode = this.nodes.get(connectedNodeId);
+      if (connectedNode && connectedNode.audioBuffer) {
+        this.audioEngine.resumeNode(connectedNodeId, connectedNode.audioBuffer);
+        this.updateNodeState(connectedNodeId, { isPlaying: true });
+      }
+    });
+  }
+
+  isNodePaused(nodeId: string): boolean {
+    return this.audioEngine.isNodePaused(nodeId);
+  }
+
   connectNodes(fromNodeId: string, toNodeId: string): void {
     const fromNode = this.nodes.get(fromNodeId);
     const toNode = this.nodes.get(toNodeId);

@@ -101,6 +101,32 @@ function App() {
     }));
   }, []);
 
+  const handleNodePause = useCallback((nodeId: string) => {
+    nodeManagerRef.current.pauseNode(nodeId);
+    
+    setCanvasState(prev => ({
+      ...prev,
+      nodes: prev.nodes.map(node => 
+        node.id === nodeId || node.connections.includes(nodeId)
+          ? { ...node, isPlaying: false }
+          : node
+      )
+    }));
+  }, []);
+
+  const handleNodeResume = useCallback((nodeId: string) => {
+    nodeManagerRef.current.resumeNode(nodeId);
+    
+    setCanvasState(prev => ({
+      ...prev,
+      nodes: prev.nodes.map(node => 
+        node.id === nodeId || node.connections.includes(nodeId)
+          ? { ...node, isPlaying: true }
+          : node
+      )
+    }));
+  }, []);
+
   const handleNodeMove = useCallback((nodeId: string, x: number, y: number) => {
     nodeManagerRef.current.updateNodePosition(nodeId, x, y);
     
@@ -256,6 +282,8 @@ function App() {
             node={node}
             onPlay={handleNodePlay}
             onStop={handleNodeStop}
+            onPause={handleNodePause}
+            onResume={handleNodeResume}
             onMove={handleNodeMove}
             onDelete={handleNodeDelete}
             onConnectionStart={handleConnectionStart}
@@ -263,6 +291,7 @@ function App() {
             scale={canvasState.zoom}
             isDarkMode={isDarkMode}
             isConnected={node.connections.length > 0}
+            isPaused={nodeManagerRef.current.isNodePaused(node.id)}
           />
         ))}
 

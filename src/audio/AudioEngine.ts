@@ -102,6 +102,60 @@ export class AudioEngine {
       }
       this.activeNodes.delete(nodeId);
     }
+
+    const nodeState = this.nodeStates.get(nodeId);
+    if (nodeState) {
+      nodeState.isPlaying = false;
+      nodeState.isPaused = false;
+      nodeState.source = null;
+    }
+  }
+
+  pauseNode(nodeId: string): void {
+    const nodeState = this.nodeStates.get(nodeId);
+    if (nodeState && nodeState.isPlaying && !nodeState.isPaused) {
+      if (nodeState.source) {
+        try {
+          nodeState.source.stop();
+        } catch (error) {
+          console.warn('Node already stopped:', nodeId);
+        }
+      }
+      
+      nodeState.isPaused = true;
+      nodeState.isPlaying = false;
+      nodeState.pauseTime = this.audioContext?.currentTime || 0;
+      this.activeNodes.delete(nodeId);
+    }
+  }
+
+  resumeNode(nodeId: string, audioBuffer: AudioBuffer): void {
+    const nodeState = this.nodeStates.get(nodeId);
+    if (nodeState && nodeState.isPaused && this.audioContext && this.masterGain) {
+      // Create new source for resuming
+      const source = this.audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(nodeState.gainNode);
+      
+      nodeState.source = source;
+      nodeState.isPlaying = true;
+      nodeState.isPaused = false;
+      nodeState.startTime = this.audioContext.currentTime;
+
+      source.start();
+      this.activeNodes.set(nodeId, source);
+
+      source.onended = () => {
+        this.activeNodes.delete(nodeId);
+        nodeState.isPlaying = false;
+        nodeState.source = null;
+      };
+    }
+  }
+
+  isNodePaused(nodeId: string): boolean {
+    const nodeState = this.nodeStates.get(nodeId);
+    return nodeState ? nodeState.isPaused : false;
   }
 
   stopAllNodes(): void {
@@ -128,5 +182,33 @@ export class AudioEngine {
 
   isNodePlaying(nodeId: string): boolean {
     return this.activeNodes.has(nodeId);
+  }
+
+  setNodeVolume(nodeId: string, volume: number): void {
+    const nodeState = this.nodeStates.get(nodeId);
+    if (nodeState) {
+      nodeState.volume = Math.max(0, Math.min(1, volume));
+      nodeState.gainNode.gain.value = nodeState.isMuted ? 0 : nodeState.volume;
+    }
+  }
+
+  muteNode(nodeId: string): void {
+    const nodeState = this.nodeStates.get(nodeId);
+    if (nodeState) {
+      nodeState.isMuted = true;
+      nodeState.gainNode.gain.value = 0;
+    }
+  }
+
+  unmuteNode(nodeId: string): void {
+    const nodeState = this.nodeStates.get(nodeId);
+    if (nodeState) {
+      nodeState.isMuted = false;
+      nodeState.gainNode.gain.value = nodeState.volume;
+    }
+  }
+
+  getNodeState(nodeId: string): NodePlaybackState | undefined {
+    return this.nodeStates.get(nodeId);
   }
 }
