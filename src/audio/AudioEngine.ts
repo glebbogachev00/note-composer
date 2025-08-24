@@ -1,7 +1,19 @@
+interface NodePlaybackState {
+  source: AudioBufferSourceNode | null;
+  gainNode: GainNode;
+  isPlaying: boolean;
+  isPaused: boolean;
+  startTime: number;
+  pauseTime: number;
+  volume: number;
+  isMuted: boolean;
+}
+
 export class AudioEngine {
   private audioContext: AudioContext | null = null;
   private masterGain: GainNode | null = null;
   private activeNodes: Map<string, AudioBufferSourceNode> = new Map();
+  private nodeStates: Map<string, NodePlaybackState> = new Map();
   private isInitialized = false;
 
   async initialize(): Promise<void> {
@@ -49,11 +61,34 @@ export class AudioEngine {
     source.connect(gainNode);
     gainNode.connect(this.masterGain);
 
+    // Initialize node state if it doesn't exist
+    if (!this.nodeStates.has(nodeId)) {
+      this.nodeStates.set(nodeId, {
+        source: null,
+        gainNode,
+        isPlaying: false,
+        isPaused: false,
+        startTime: 0,
+        pauseTime: 0,
+        volume: 1,
+        isMuted: false
+      });
+    }
+
+    const nodeState = this.nodeStates.get(nodeId)!;
+    nodeState.source = source;
+    nodeState.gainNode = gainNode;
+    nodeState.isPlaying = true;
+    nodeState.isPaused = false;
+    nodeState.startTime = this.audioContext.currentTime;
+
     source.start();
     this.activeNodes.set(nodeId, source);
 
     source.onended = () => {
       this.activeNodes.delete(nodeId);
+      nodeState.isPlaying = false;
+      nodeState.source = null;
     };
   }
 
