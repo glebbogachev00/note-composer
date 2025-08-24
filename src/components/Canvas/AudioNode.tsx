@@ -12,6 +12,7 @@ interface AudioNodeProps {
   isConnecting: boolean;
   scale: number;
   isDarkMode: boolean;
+  isConnected?: boolean;
 }
 
 export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
@@ -23,7 +24,8 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
   onConnectionStart,
   isConnecting,
   scale,
-  isDarkMode
+  isDarkMode,
+  isConnected = false
 }) => {
   const [isPressed, setIsPressed] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -64,6 +66,29 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
 
   const nodeSize = 100;
   const glowSize = node.isPlaying ? nodeSize * 1.4 : nodeSize * 1.1;
+  
+  // Visual state based on connection status
+  const getNodeVisualState = () => {
+    if (isConnected) {
+      return {
+        borderColor: isDarkMode ? '#3B82F6' : '#2563EB', // Blue
+        glowColor: 'rgba(59, 130, 246, 0.6)',
+        opacity: 1.0,
+        scale: 1.0,
+        glowIntensity: node.isPlaying ? 0.8 : 0.4
+      };
+    } else {
+      return {
+        borderColor: isDarkMode ? '#6B7280' : '#9CA3AF', // Gray
+        glowColor: 'rgba(107, 114, 128, 0.3)',
+        opacity: 0.8,
+        scale: 0.95,
+        glowIntensity: node.isPlaying ? 0.5 : 0.2
+      };
+    }
+  };
+  
+  const visualState = getNodeVisualState();
 
   return (
     <motion.div
@@ -82,7 +107,8 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
       onMouseUp={handleTouchEnd}
       whileTap={{ scale: 0.95 }}
       animate={{
-        scale: isPressed ? 0.95 : 1,
+        scale: isPressed ? 0.95 : visualState.scale,
+        opacity: visualState.opacity,
       }}
       transition={{
         type: "spring",
@@ -95,14 +121,16 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
         <motion.div
           className="absolute inset-0 rounded-full blur-lg"
           style={{
-            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
+            backgroundColor: isConnected 
+              ? visualState.glowColor
+              : (isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.15)'),
             width: glowSize,
             height: glowSize,
             left: (nodeSize - glowSize) / 2,
             top: (nodeSize - glowSize) / 2
           }}
           animate={{
-            opacity: [0.2, 0.5, 0.2],
+            opacity: [visualState.glowIntensity * 0.4, visualState.glowIntensity, visualState.glowIntensity * 0.4],
             scale: [1, 1.1, 1]
           }}
           transition={{
@@ -120,9 +148,10 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
           backgroundColor: isDarkMode 
             ? (node.isPlaying ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)')
             : (node.isPlaying ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.05)'),
-          borderColor: isDarkMode
-            ? (node.isPlaying ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.3)')
-            : (node.isPlaying ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.2)')
+          borderColor: visualState.borderColor,
+          boxShadow: isConnected 
+            ? `0 0 ${node.isPlaying ? '12px' : '6px'} ${visualState.glowColor}`
+            : `0 0 ${node.isPlaying ? '8px' : '4px'} ${visualState.glowColor}`
         }}
         animate={{
           scale: node.isPlaying ? [1, 1.03, 1] : 1

@@ -262,6 +262,7 @@ function App() {
             isConnecting={mode === 'connect'}
             scale={canvasState.zoom}
             isDarkMode={isDarkMode}
+            isConnected={node.connections.length > 0}
           />
         ))}
 

@@ -9,6 +9,13 @@ export interface AudioNode {
   color: string;
 }
 
+export interface NodeVisualState {
+  isConnected: boolean;
+  isPaused: boolean;
+  isMuted: boolean;
+  volume: number;
+}
+
 export interface Connection {
   id: string;
   fromNodeId: string;
