@@ -23,20 +23,14 @@ export const NodeControls: React.FC<NodeControlsProps> = ({
   selectedForDeletionCount = 0,
   isDarkMode
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const toggleExpanded = () => {
-    setIsExpanded(!isExpanded);
-  };
+  const [_isExpanded, _setIsExpanded] = useState(false);
 
   const handleAddNode = () => {
     onAddNode();
-    setIsExpanded(false);
   };
 
   const handleZoomFit = () => {
     onZoomFit();
-    setIsExpanded(false);
   };
 
   const handleModeToggle = () => {
@@ -44,7 +38,6 @@ export const NodeControls: React.FC<NodeControlsProps> = ({
     const currentIndex = modes.indexOf(mode);
     const nextMode = modes[(currentIndex + 1) % modes.length];
     onModeChange(nextMode);
-    setIsExpanded(false);
   };
 
   const handleDeleteConfirm = () => {

@@ -85,7 +85,7 @@ export const SessionRecorder: React.FC<SessionRecorderProps> = ({
         onRecordingComplete(audioBlob, eventsRef.current);
         
         // Stop all tracks
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
       };
 
       mediaRecorderRef.current.start(100); // Collect data every 100ms
@@ -97,7 +97,7 @@ export const SessionRecorder: React.FC<SessionRecorderProps> = ({
 
     } catch (error) {
       console.error('Failed to start recording:', error);
-      alert(`Recording failed to start: ${error.message}. Please try again.`);
+      alert(`Recording failed to start: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`);
     }
   }, [onRecordingComplete, audioEngine]);
 

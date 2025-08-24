@@ -32,7 +32,7 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
   onPause,
   onResume,
   onMove,
-  onDelete,
+  onDelete: _onDelete,
   onConnectionStart,
   onToggleDeleteSelection,
   onVolumeChange,
@@ -51,7 +51,7 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [showLabel, setShowLabel] = useState(false);
   const [showControls, setShowControls] = useState(false);
-  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  const [_showVolumeSlider, _setShowVolumeSlider] = useState(false);
 
   const handleTouchStart = useCallback((event: React.TouchEvent | React.MouseEvent) => {
     event.stopPropagation();
@@ -95,7 +95,6 @@ export const AudioNodeComponent: React.FC<AudioNodeProps> = ({
 
   const handleMouseLeave = useCallback(() => {
     setShowControls(false);
-    setShowVolumeSlider(false);
   }, []);
 
   const handleVolumeChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
