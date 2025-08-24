@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AudioEngine } from './audio/AudioEngine';
 import { NodeManager } from './audio/NodeManager';
 import { InfiniteCanvas } from './components/Canvas/InfiniteCanvas';
@@ -33,6 +33,7 @@ function App() {
   const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null);
   const [isExportVisible, setIsExportVisible] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isVideoMode, setIsVideoMode] = useState(false);
   const [deletionState, setDeletionState] = useState<DeletionState>({
     mode: 'normal',
     selectedForDeletion: new Set()
@@ -318,6 +319,18 @@ function App() {
     }
   }, []);
 
+  const handleVideoModeToggle = useCallback(() => {
+    setIsVideoMode(prev => !prev);
+    // Exit any active modes when entering video mode
+    if (!isVideoMode) {
+      setMode('play');
+      setDeletionState({
+        mode: 'normal',
+        selectedForDeletion: new Set()
+      });
+    }
+  }, [isVideoMode]);
+
   const connections = nodeManagerRef.current.getConnections();
 
   return (
@@ -325,33 +338,43 @@ function App() {
       isDarkMode ? 'bg-pure-black' : 'bg-white'
     }`}>
       {/* Header */}
-      <div className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center p-6">
-        {/* App title */}
-        <motion.h1 
-          className={`text-sm font-mono tracking-wide transition-colors duration-500 ${
-            isDarkMode ? 'text-white/80' : 'text-black/80'
-          }`}
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          [note] - visual composer
-        </motion.h1>
+      <AnimatePresence>
+        {!isVideoMode && (
+          <motion.div 
+            className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center p-6"
+            initial={{ opacity: 1, y: 0 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* App title */}
+            <motion.h1 
+              className={`text-sm font-mono tracking-wide transition-colors duration-500 ${
+                isDarkMode ? 'text-white/80' : 'text-black/80'
+              }`}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              [note] - visual composer
+            </motion.h1>
 
-        {/* Theme changer */}
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <ThemeChanger
-            isDarkMode={isDarkMode}
-            onThemeToggle={() => setIsDarkMode(!isDarkMode)}
-            isRecording={isRecording}
-            onToggleRecording={() => setIsRecording(!isRecording)}
-          />
-        </motion.div>
-      </div>
+            {/* Theme changer */}
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <ThemeChanger
+                isDarkMode={isDarkMode}
+                onThemeToggle={() => setIsDarkMode(!isDarkMode)}
+                isRecording={isRecording}
+                onToggleRecording={() => setIsRecording(!isRecording)}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <InfiniteCanvas
         canvasState={canvasState}
@@ -385,11 +408,11 @@ function App() {
               onDelete={handleNodeDelete}
               onConnectionStart={handleConnectionStart}
               onToggleDeleteSelection={handleToggleDeleteSelection}
-              onVolumeChange={handleVolumeChange}
-              onMuteToggle={handleMuteToggle}
-              isConnecting={mode === 'connect'}
-              isDeletionMode={mode === 'delete'}
-              isMarkedForDeletion={deletionState.selectedForDeletion.has(node.id)}
+              onVolumeChange={!isVideoMode ? handleVolumeChange : undefined}
+              onMuteToggle={!isVideoMode ? handleMuteToggle : undefined}
+              isConnecting={mode === 'connect' && !isVideoMode}
+              isDeletionMode={mode === 'delete' && !isVideoMode}
+              isMarkedForDeletion={deletionState.selectedForDeletion.has(node.id) && !isVideoMode}
               nodeVolume={nodeState?.volume ?? 1}
               isMuted={nodeState?.isMuted ?? false}
               scale={canvasState.zoom}
@@ -409,44 +432,107 @@ function App() {
       </InfiniteCanvas>
 
       {/* Controls */}
-      <NodeControls
-        mode={mode}
-        onModeChange={setMode}
-        onAddNode={handleAddNode}
-        onZoomFit={handleZoomFit}
-        onDeleteSelected={handleDeleteSelected}
-        onClearSelection={handleClearSelection}
-        selectedForDeletionCount={deletionState.selectedForDeletion.size}
-        isDarkMode={isDarkMode}
-      />
+      <AnimatePresence>
+        {!isVideoMode && (
+          <motion.div
+            initial={{ opacity: 1, y: 0 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <NodeControls
+              mode={mode}
+              onModeChange={setMode}
+              onAddNode={handleAddNode}
+              onZoomFit={handleZoomFit}
+              onDeleteSelected={handleDeleteSelected}
+              onClearSelection={handleClearSelection}
+              selectedForDeletionCount={deletionState.selectedForDeletion.size}
+              isDarkMode={isDarkMode}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Video mode toggle button */}
+      <AnimatePresence>
+        {!isVideoMode && (
+          <motion.button
+            className={`
+              fixed bottom-8 right-8 z-40 px-4 py-2 rounded-lg border font-mono text-sm transition-all
+              ${isDarkMode 
+                ? 'bg-purple-500/20 border-purple-500/40 text-purple-400 hover:bg-purple-500/30' 
+                : 'bg-purple-100 border-purple-300 text-purple-600 hover:bg-purple-200'
+              }
+            `}
+            onClick={handleVideoModeToggle}
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            📹 Video Mode
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* Exit video mode button */}
+      <AnimatePresence>
+        {isVideoMode && (
+          <motion.button
+            className={`
+              fixed top-8 left-8 z-50 px-3 py-2 rounded border font-mono text-xs transition-all
+              ${isDarkMode 
+                ? 'bg-black/50 border-white/20 text-white/60 hover:border-white/40 hover:text-white/80 backdrop-blur-sm' 
+                : 'bg-white/50 border-black/20 text-black/60 hover:border-black/40 hover:text-black/80 backdrop-blur-sm'
+              }
+            `}
+            onClick={handleVideoModeToggle}
+            initial={{ opacity: 0, scale: 0.9, x: -20 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.9, x: -20 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            Exit Video Mode
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* Audio uploader modal */}
-      <AudioUploader
-        onFileUpload={handleFileUpload}
-        isVisible={isUploaderVisible}
-        onClose={() => setIsUploaderVisible(false)}
-        uploadPosition={uploadPosition}
-      />
+      {!isVideoMode && (
+        <AudioUploader
+          onFileUpload={handleFileUpload}
+          isVisible={isUploaderVisible}
+          onClose={() => setIsUploaderVisible(false)}
+          uploadPosition={uploadPosition}
+        />
+      )}
 
       {/* Session recorder */}
-      <SessionRecorder
-        isRecording={isRecording}
-        onRecordingComplete={handleRecordingComplete}
-        audioEngine={audioEngineRef.current}
-      />
+      {!isVideoMode && (
+        <SessionRecorder
+          isRecording={isRecording}
+          onRecordingComplete={handleRecordingComplete}
+          audioEngine={audioEngineRef.current}
+        />
+      )}
 
       {/* Export manager */}
-      <ExportManager
-        audioBlob={recordingBlob}
-        isVisible={isExportVisible}
-        onClose={() => {
-          setIsExportVisible(false);
-          setRecordingBlob(null);
-        }}
-      />
+      {!isVideoMode && (
+        <ExportManager
+          audioBlob={recordingBlob}
+          isVisible={isExportVisible}
+          onClose={() => {
+            setIsExportVisible(false);
+            setRecordingBlob(null);
+          }}
+        />
+      )}
 
       {/* Welcome interface for first-time users */}
-      {canvasState.nodes.length === 0 && (
+      {canvasState.nodes.length === 0 && !isVideoMode && (
         <motion.div
           className="fixed inset-0 flex items-center justify-center pointer-events-none z-10"
           initial={{ opacity: 0 }}
