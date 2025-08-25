@@ -92,6 +92,25 @@ export class NodeManager {
     });
   }
 
+  // Individual node control methods (don't affect connected nodes)
+  pauseNodeOnly(nodeId: string): void {
+    this.audioEngine.pauseNode(nodeId);
+    this.updateNodeState(nodeId, { isPlaying: false });
+  }
+
+  resumeNodeOnly(nodeId: string): void {
+    const node = this.nodes.get(nodeId);
+    if (!node || !node.audioBuffer) return;
+
+    this.audioEngine.resumeNode(nodeId, node.audioBuffer);
+    this.updateNodeState(nodeId, { isPlaying: true });
+  }
+
+  stopNodeOnly(nodeId: string): void {
+    this.audioEngine.stopNode(nodeId);
+    this.updateNodeState(nodeId, { isPlaying: false });
+  }
+
   isNodePaused(nodeId: string): boolean {
     return this.audioEngine.isNodePaused(nodeId);
   }

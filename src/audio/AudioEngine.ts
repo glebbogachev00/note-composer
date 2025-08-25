@@ -80,7 +80,10 @@ export class AudioEngine {
     nodeState.gainNode = gainNode;
     nodeState.isPlaying = true;
     nodeState.isPaused = false;
+    
+    // Reset timing for fresh play (not resume)
     nodeState.startTime = this.audioContext.currentTime;
+    nodeState.pauseTime = 0;
 
     source.start();
     this.activeNodes.set(nodeId, source);
@@ -125,6 +128,11 @@ export class AudioEngine {
       nodeState.isPaused = true;
       nodeState.isPlaying = false;
       nodeState.pauseTime = this.audioContext?.currentTime || 0;
+      
+      // Debug logging
+      const elapsedTime = nodeState.pauseTime - nodeState.startTime;
+      console.log(`Pausing node ${nodeId}: elapsed time = ${elapsedTime}s`);
+      
       this.activeNodes.delete(nodeId);
     }
   }
@@ -132,7 +140,12 @@ export class AudioEngine {
   resumeNode(nodeId: string, audioBuffer: AudioBuffer): void {
     const nodeState = this.nodeStates.get(nodeId);
     if (nodeState && nodeState.isPaused && this.audioContext && this.masterGain) {
-      // Create new source for resuming
+      // Calculate the elapsed time when paused
+      const elapsedTime = nodeState.pauseTime - nodeState.startTime;
+      
+      console.log(`Resuming node ${nodeId}: elapsed time = ${elapsedTime}s, buffer duration = ${audioBuffer.duration}s`);
+      
+      // Create new source for resuming from the paused position
       const source = this.audioContext.createBufferSource();
       source.buffer = audioBuffer;
       source.connect(nodeState.gainNode);
@@ -140,9 +153,25 @@ export class AudioEngine {
       nodeState.source = source;
       nodeState.isPlaying = true;
       nodeState.isPaused = false;
-      nodeState.startTime = this.audioContext.currentTime;
+      
+      // Adjust start time so the elapsed calculation works for future pauses
+      nodeState.startTime = this.audioContext.currentTime - elapsedTime;
 
-      source.start();
+      // Start from the paused position, ensuring we don't exceed buffer duration
+      const startOffset = Math.max(0, Math.min(elapsedTime, audioBuffer.duration));
+      
+      console.log(`Using startOffset: ${startOffset}s`);
+      
+      // Only start with offset if we have a meaningful elapsed time
+      if (startOffset > 0.01 && startOffset < audioBuffer.duration) {
+        source.start(0, startOffset);
+      } else {
+        // If elapsed time is invalid, start from beginning
+        console.log('Starting from beginning due to invalid offset');
+        source.start();
+        nodeState.startTime = this.audioContext.currentTime;
+      }
+      
       this.activeNodes.set(nodeId, source);
 
       source.onended = () => {
