@@ -5,13 +5,12 @@ import { NodeManager } from './audio/NodeManager';
 import { InfiniteCanvas } from './components/Canvas/InfiniteCanvas';
 import { AudioNodeComponent } from './components/Canvas/AudioNode';
 import { ConnectionLine } from './components/Canvas/ConnectionLine';
-import { NodeControls } from './components/Canvas/NodeControls';
 import { AudioUploader } from './components/Upload/AudioUploader';
 import { SessionRecorder } from './components/Recording/SessionRecorder';
 import { ExportManager } from './components/Recording/ExportManager';
 import { ThemeChanger } from './components/ThemeChanger';
 import { SimplifiedControls } from './components/SimplifiedControls';
-import { CanvasState, InteractionMode, DeletionState } from './types';
+import { CanvasState, InteractionMode } from './types';
 import { validateAudioFile } from './utils/fileHandling';
 
 function App() {
@@ -35,10 +34,6 @@ function App() {
   const [isExportVisible, setIsExportVisible] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isControlsHidden, setIsControlsHidden] = useState(false);
-  const [deletionState, setDeletionState] = useState<DeletionState>({
-    mode: 'normal',
-    selectedForDeletion: new Set()
-  });
 
   useEffect(() => {
     const initializeAudio = async () => {
@@ -52,13 +47,6 @@ function App() {
     initializeAudio();
   }, []);
 
-  useEffect(() => {
-    setDeletionState(prev => ({
-      ...prev,
-      mode: mode === 'delete' ? 'delete' : 'normal',
-      selectedForDeletion: mode !== 'delete' ? new Set() : prev.selectedForDeletion
-    }));
-  }, [mode]);
 
   const handleCanvasUpdate = useCallback((updates: Partial<CanvasState>) => {
     setCanvasState(prev => ({ ...prev, ...updates }));
@@ -135,40 +123,8 @@ function App() {
     }));
   }, []);
 
-  const handleNodeStop = useCallback((nodeId: string) => {
-    nodeManagerRef.current.stopNode(nodeId);
-    
-    setCanvasState(prev => ({
-      ...prev,
-      nodes: prev.nodes.map(node => ({ ...node, isPlaying: false }))
-    }));
-  }, []);
 
-  const handleNodePause = useCallback((nodeId: string) => {
-    nodeManagerRef.current.pauseNode(nodeId);
-    
-    setCanvasState(prev => ({
-      ...prev,
-      nodes: prev.nodes.map(node => 
-        node.id === nodeId || node.connections.includes(nodeId)
-          ? { ...node, isPlaying: false }
-          : node
-      )
-    }));
-  }, []);
 
-  const handleNodeResume = useCallback((nodeId: string) => {
-    nodeManagerRef.current.resumeNode(nodeId);
-    
-    setCanvasState(prev => ({
-      ...prev,
-      nodes: prev.nodes.map(node => 
-        node.id === nodeId || node.connections.includes(nodeId)
-          ? { ...node, isPlaying: true }
-          : node
-      )
-    }));
-  }, []);
 
   // Individual node control (doesn't affect connected nodes)
   const handleIndividualNodePause = useCallback((nodeId: string) => {
@@ -304,46 +260,8 @@ function App() {
     }
   }, []);
 
-  const handleToggleDeleteSelection = useCallback((nodeId: string) => {
-    setDeletionState(prev => {
-      const newSet = new Set(prev.selectedForDeletion);
-      if (newSet.has(nodeId)) {
-        newSet.delete(nodeId);
-      } else {
-        newSet.add(nodeId);
-      }
-      return { ...prev, selectedForDeletion: newSet };
-    });
-  }, []);
 
-  const handleDeleteSelected = useCallback(() => {
-    const nodeIdsToDelete = Array.from(deletionState.selectedForDeletion);
-    
-    // Delete each selected node
-    nodeIdsToDelete.forEach(nodeId => {
-      nodeManagerRef.current.removeNode(nodeId);
-    });
 
-    // Update canvas state
-    setCanvasState(prev => ({
-      ...prev,
-      nodes: prev.nodes.filter(node => !deletionState.selectedForDeletion.has(node.id))
-    }));
-
-    // Clear selection and exit delete mode
-    setDeletionState({
-      mode: 'normal',
-      selectedForDeletion: new Set()
-    });
-    setMode('play');
-  }, [deletionState.selectedForDeletion]);
-
-  const handleClearSelection = useCallback(() => {
-    setDeletionState(prev => ({
-      ...prev,
-      selectedForDeletion: new Set()
-    }));
-  }, []);
 
   const handleDisconnectNodes = useCallback((fromNodeId: string, toNodeId: string) => {
     nodeManagerRef.current.disconnectNodes(fromNodeId, toNodeId);
@@ -388,10 +306,6 @@ function App() {
     // Exit any active modes when hiding controls
     if (!isControlsHidden) {
       setMode('play');
-      setDeletionState({
-        mode: 'normal',
-        selectedForDeletion: new Set()
-      });
     }
   }, [isControlsHidden]);
 

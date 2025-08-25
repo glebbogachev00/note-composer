@@ -1,4 +1,4 @@
-import { IndividualNodeState } from '../types';
+import { IndividualNodeState } from '../types/index';
 
 export class IndividualPlaybackManager {
   private nodeStates: Map<string, IndividualNodeState> = new Map();

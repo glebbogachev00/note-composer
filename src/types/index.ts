@@ -50,3 +50,11 @@ export interface GestureState {
   currentX: number;
   currentY: number;
 }
+
+export interface IndividualNodeState {
+  isPlaying: boolean;
+  isPaused: boolean;
+  currentTime: number;
+  audioSource?: AudioBufferSourceNode;
+  pausedAt?: number;
+}
